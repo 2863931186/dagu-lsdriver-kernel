@@ -27,6 +27,12 @@ export KBUILD_BUILD_HOST="dagu-builder"
 compat_toolchain_prefix="${CROSS_COMPILE_COMPAT:-/usr/bin/arm-linux-gnueabi-}"
 cc_compat="${CC_COMPAT:-${compat_toolchain_prefix}gcc}"
 ld_compat="${LD_COMPAT:-${compat_toolchain_prefix}ld}"
+kernel_toolchain_prefix="${CROSS_COMPILE:-/usr/bin/aarch64-linux-gnu-}"
+
+if ! command -v "${kernel_toolchain_prefix}as" >/dev/null; then
+    echo "AArch64 GNU toolchain not found: $kernel_toolchain_prefix" >&2
+    exit 1
+fi
 
 if ! command -v "$cc_compat" >/dev/null || ! command -v "$ld_compat" >/dev/null; then
     echo "32-bit ARM compat toolchain not found: $compat_toolchain_prefix" >&2
@@ -39,19 +45,11 @@ make_args=(
     -C "$KERNEL_DIR"
     O="$OUT_DIR"
     ARCH=arm64
-    LLVM=1
-    LLVM_IAS=1
     CC=clang
     HOSTCC=clang
     HOSTCXX=clang++
-    LD=ld.lld
-    AR=llvm-ar
-    NM=llvm-nm
-    OBJCOPY=llvm-objcopy
-    OBJDUMP=llvm-objdump
-    STRIP=llvm-strip
     CLANG_TRIPLE=aarch64-linux-gnu-
-    CROSS_COMPILE=aarch64-linux-gnu-
+    CROSS_COMPILE="$kernel_toolchain_prefix"
     CROSS_COMPILE_COMPAT="$compat_toolchain_prefix"
     CC_COMPAT="$cc_compat"
     LD_COMPAT="$ld_compat"
