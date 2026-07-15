@@ -39,6 +39,9 @@ if ! command -v "$cc_compat" >/dev/null || ! command -v "$ld_compat" >/dev/null;
     exit 1
 fi
 
+git -C "$KERNEL_DIR" apply --unidiff-zero \
+    "$ROOT_DIR/patches/dagu/0001-gsi-fix-modversion-generation.patch"
+
 mkdir -p "$OUT_DIR" "$DIST_DIR"
 
 make_args=(

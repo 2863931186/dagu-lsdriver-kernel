@@ -1,0 +1,60 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] gsi: fix channel scratch modversion generation
+
+The gsi_channel_scratch union is already declared packed. Repeating the
+attribute on references to the union prevents the 4.19 genksyms parser from
+generating a CRC for gsi_write_channel_scratch, which then leaves an ABS32
+relocation that modern linkers reject.
+
+Keep the attribute on the type definition and use the union tag normally at
+all reference sites.
+---
+ drivers/platform/msm/gsi/gsi.c | 12 ++++++------
+ drivers/platform/msm/gsi/gsi.h |  2 +-
+ include/linux/msm_gsi.h         |  8 ++++----
+ 3 files changed, 11 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/platform/msm/gsi/gsi.c b/drivers/platform/msm/gsi/gsi.c
+--- a/drivers/platform/msm/gsi/gsi.c
++++ b/drivers/platform/msm/gsi/gsi.c
+@@ -2552 +2552 @@ static void __gsi_write_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch val)
++		union gsi_channel_scratch val)
+@@ -2633 +2633 @@ static void __gsi_read_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch * val)
++		union gsi_channel_scratch * val)
+@@ -2652 +2652 @@ static void __gsi_read_channel_scratch(unsigned long chan_hdl,
+-static union __packed gsi_channel_scratch __gsi_update_mhi_channel_scratch(
++static union gsi_channel_scratch __gsi_update_mhi_channel_scratch(
+@@ -2655 +2655 @@ static union __packed gsi_channel_scratch __gsi_update_mhi_channel_scratch(
+-	union __packed gsi_channel_scratch scr;
++	union gsi_channel_scratch scr;
+@@ -2712 +2712 @@ int gsi_write_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch val)
++		union gsi_channel_scratch val)
+@@ -2745 +2745 @@ int gsi_read_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch *val)
++		union gsi_channel_scratch *val)
+diff --git a/drivers/platform/msm/gsi/gsi.h b/drivers/platform/msm/gsi/gsi.h
+--- a/drivers/platform/msm/gsi/gsi.h
++++ b/drivers/platform/msm/gsi/gsi.h
+@@ -150 +150 @@ struct gsi_chan_ctx {
+-	union __packed gsi_channel_scratch scratch;
++	union gsi_channel_scratch scratch;
+diff --git a/include/linux/msm_gsi.h b/include/linux/msm_gsi.h
+--- a/include/linux/msm_gsi.h
++++ b/include/linux/msm_gsi.h
+@@ -1278 +1278 @@ int gsi_write_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch val);
++		union gsi_channel_scratch val);
+@@ -1317 +1317 @@ int gsi_read_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch *val);
++		union gsi_channel_scratch *val);
+@@ -1781 +1781 @@ static inline int gsi_write_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch val)
++		union gsi_channel_scratch val)
+@@ -1798 +1798 @@ static inline int gsi_read_channel_scratch(unsigned long chan_hdl,
+-		union __packed gsi_channel_scratch *val)
++		union gsi_channel_scratch *val)
+-- 
+2.50.1
