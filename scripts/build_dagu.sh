@@ -43,7 +43,7 @@ make_args=(
     STRIP=llvm-strip
     CLANG_TRIPLE=aarch64-linux-gnu-
     CROSS_COMPILE=aarch64-linux-gnu-
-    CROSS_COMPILE_COMPAT=arm-linux-gnueabi-
+    CROSS_COMPILE_COMPAT="${CROSS_COMPILE_COMPAT:-/usr/bin/arm-linux-gnueabi-}"
 )
 
 make "${make_args[@]}" dagu_user_defconfig
