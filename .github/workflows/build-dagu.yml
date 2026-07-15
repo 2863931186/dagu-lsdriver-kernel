@@ -1,0 +1,62 @@
+name: Build Xiaomi Dagu kernel and lsdriver
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/build-dagu.yml"
+      - "lsdriver/**"
+      - "scripts/build_dagu.sh"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dagu-kernel-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout driver source
+        uses: actions/checkout@v4
+
+      - name: Free runner disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc
+          df -h /
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential cpio flex git libelf-dev libssl-dev python3 rsync unzip xz-utils
+
+      - name: Checkout Xiaomi dagu kernel
+        env:
+          KERNEL_COMMIT: 2f4aa27840d3b7bb61454de676f044fa0dd942c1
+        run: |
+          git clone --depth 1 --branch dagu-s-oss https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git dagu-kernel
+          test "$(git -C dagu-kernel rev-parse HEAD)" = "$KERNEL_COMMIT"
+
+      - name: Checkout Android clang toolchain
+        run: git clone --depth 1 https://github.com/kdrag0n/proton-clang.git proton-clang
+
+      - name: Build kernel and external module
+        env:
+          KERNEL_DIR: ${{ github.workspace }}/dagu-kernel
+          TOOLCHAIN_DIR: ${{ github.workspace }}/proton-clang
+          OUT_DIR: ${{ github.workspace }}/out/dagu
+          DIST_DIR: ${{ github.workspace }}/dist/dagu
+        run: bash scripts/build_dagu.sh
+
+      - name: Upload dagu artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dagu-kernel-lsdriver-${{ github.run_number }}
+          path: dist/dagu/**
+          if-no-files-found: error
+          compression-level: 6

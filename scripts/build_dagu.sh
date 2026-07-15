@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+KERNEL_DIR="${KERNEL_DIR:-$ROOT_DIR/../dagu-kernel}"
+TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-$ROOT_DIR/../proton-clang}"
+OUT_DIR="${OUT_DIR:-$ROOT_DIR/out/dagu}"
+DIST_DIR="${DIST_DIR:-$ROOT_DIR/dist/dagu}"
+JOBS="${JOBS:-$(nproc)}"
+
+if [[ ! -f "$KERNEL_DIR/Makefile" ]]; then
+    echo "kernel source not found: $KERNEL_DIR" >&2
+    exit 1
+fi
+
+if [[ ! -x "$TOOLCHAIN_DIR/bin/clang" ]]; then
+    echo "clang toolchain not found: $TOOLCHAIN_DIR/bin/clang" >&2
+    exit 1
+fi
+
+export PATH="$TOOLCHAIN_DIR/bin:$PATH"
+export ARCH=arm64
+export SUBARCH=arm64
+export KBUILD_BUILD_USER="github-actions"
+export KBUILD_BUILD_HOST="dagu-builder"
+
+mkdir -p "$OUT_DIR" "$DIST_DIR"
+
+make_args=(
+    -C "$KERNEL_DIR"
+    O="$OUT_DIR"
+    ARCH=arm64
+    LLVM=1
+    LLVM_IAS=1
+    CC=clang
+    HOSTCC=clang
+    HOSTCXX=clang++
+    LD=ld.lld
+    AR=llvm-ar
+    NM=llvm-nm
+    OBJCOPY=llvm-objcopy
+    OBJDUMP=llvm-objdump
+    STRIP=llvm-strip
+    CLANG_TRIPLE=aarch64-linux-gnu-
+    CROSS_COMPILE=aarch64-linux-gnu-
+    CROSS_COMPILE_COMPAT=arm-linux-gnueabi-
+)
+
+make "${make_args[@]}" dagu_user_defconfig
+
+"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+    --enable MODULES \
+    --enable MODVERSIONS \
+    --enable KALLSYMS \
+    --enable KALLSYMS_ALL \
+    --enable KPROBES
+
+make "${make_args[@]}" olddefconfig
+make -j"$JOBS" "${make_args[@]}" Image Image.gz dtbs modules
+make -j"$JOBS" "${make_args[@]}" M="$ROOT_DIR/lsdriver" modules
+
+rm -rf "$DIST_DIR"
+mkdir -p "$DIST_DIR/dtbs"
+
+for artifact in \
+    "$OUT_DIR/arch/arm64/boot/Image" \
+    "$OUT_DIR/arch/arm64/boot/Image.gz" \
+    "$OUT_DIR/System.map" \
+    "$OUT_DIR/Module.symvers" \
+    "$OUT_DIR/.config" \
+    "$ROOT_DIR/lsdriver/lsdriver.ko"; do
+    if [[ -f "$artifact" ]]; then
+        cp "$artifact" "$DIST_DIR/"
+    fi
+done
+
+dt_root="$OUT_DIR/arch/arm64/boot/dts"
+if [[ -d "$dt_root" ]]; then
+    while IFS= read -r -d '' artifact; do
+        relative="${artifact#"$dt_root/"}"
+        mkdir -p "$DIST_DIR/dtbs/$(dirname -- "$relative")"
+        cp "$artifact" "$DIST_DIR/dtbs/$relative"
+    done < <(find "$dt_root" -type f \( -name '*.dtb' -o -name '*.dtbo' \) -print0)
+fi
+
+{
+    echo "kernel_commit=$(git -C "$KERNEL_DIR" rev-parse HEAD)"
+    echo "kernel_release=$(make -s "${make_args[@]}" kernelrelease)"
+    echo "clang=$($TOOLCHAIN_DIR/bin/clang --version | head -n 1)"
+    echo "driver_commit=$(git -C "$ROOT_DIR" rev-parse HEAD)"
+} > "$DIST_DIR/build-info.txt"
+
+echo "Build artifacts: $DIST_DIR"
+find "$DIST_DIR" -maxdepth 3 -type f -printf '%P\n' | sort

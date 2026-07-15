@@ -1,0 +1,63 @@
+# 忽略编译生成的中间文件
+*.o
+*.ko
+*.mod
+*.mod.c
+*.order
+*.symvers
+*.cmd
+.tmp_versions/
+*.lds
+*.usyms
+
+# 忽略 VS Code 配置
+.vscode/
+.claude/
+.codex/
+# android build outputs
+android/obj/
+android/libomp.a
+android/libomp.so
+obj/
+/libs/
+windows/__pycache__/
+*.pyc
+**/.pyinstaller/
+
+# Build dependency files
+*.o.d
+*.d
+
+# VS Code settings in subdirectories
+**/.vscode/
+
+
+# Android Studio / Gradle / NDK outputs
+.gradle/
+.idea/
+*.iml
+local.properties
+build/
+out/
+/dist/
+/dagu-kernel/
+/proton-clang/
+captures/
+.cxx/
+.externalNativeBuild/
+
+# Common generated archives and packages
+*.apk
+*.aab
+*.aar
+
+# Common OS junk
+.DS_Store
+Thumbs.db
+
+# android root-level binaries
+android/*.a
+android/*.so
+
+# Downloaded cloudflared payload embedded into LS_KTool at build time
+android/jni/assets/cloudflared-linux-arm64
