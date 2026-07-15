@@ -45,6 +45,8 @@ make_args=(
     -C "$KERNEL_DIR"
     O="$OUT_DIR"
     ARCH=arm64
+    LLVM=1
+    LLVM_IAS=0
     CC=clang
     HOSTCC=clang
     HOSTCXX=clang++
