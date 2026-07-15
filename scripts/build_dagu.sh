@@ -24,6 +24,15 @@ export SUBARCH=arm64
 export KBUILD_BUILD_USER="github-actions"
 export KBUILD_BUILD_HOST="dagu-builder"
 
+compat_toolchain_prefix="${CROSS_COMPILE_COMPAT:-/usr/bin/arm-linux-gnueabi-}"
+cc_compat="${CC_COMPAT:-${compat_toolchain_prefix}gcc}"
+ld_compat="${LD_COMPAT:-${compat_toolchain_prefix}ld}"
+
+if ! command -v "$cc_compat" >/dev/null || ! command -v "$ld_compat" >/dev/null; then
+    echo "32-bit ARM compat toolchain not found: $compat_toolchain_prefix" >&2
+    exit 1
+fi
+
 mkdir -p "$OUT_DIR" "$DIST_DIR"
 
 make_args=(
@@ -43,7 +52,9 @@ make_args=(
     STRIP=llvm-strip
     CLANG_TRIPLE=aarch64-linux-gnu-
     CROSS_COMPILE=aarch64-linux-gnu-
-    CROSS_COMPILE_COMPAT="${CROSS_COMPILE_COMPAT:-/usr/bin/arm-linux-gnueabi-}"
+    CROSS_COMPILE_COMPAT="$compat_toolchain_prefix"
+    CC_COMPAT="$cc_compat"
+    LD_COMPAT="$ld_compat"
 )
 
 make "${make_args[@]}" dagu_user_defconfig
