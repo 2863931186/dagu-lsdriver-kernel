@@ -403,6 +403,10 @@ static inline unsigned long read_sctlr_el1(void)
 }
 
 // Vendor Hypervisor UID 查询接口，用于识别 EL2 侧厂商 hypervisor 服务。
+#ifndef ARM_SMCCC_OWNER_VENDOR_HYP
+#define ARM_SMCCC_OWNER_VENDOR_HYP 6
+#endif
+
 #ifndef ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID
 #define ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL, ARM_SMCCC_SMC_32, ARM_SMCCC_OWNER_VENDOR_HYP, 0xff01)
 #endif
@@ -422,18 +426,18 @@ static inline unsigned long read_sctlr_el1(void)
 #define ARM_SMCCC_ARCH_WORKAROUND_3 ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL, ARM_SMCCC_SMC_32, ARM_SMCCC_OWNER_ARCH, 0x3fff)
 #endif
 
-static void arm_smccc_call_conduit(enum arm_smccc_conduit conduit, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6, unsigned long arg7, struct arm_smccc_res *res)
+static void arm_smccc_call_conduit(bool use_hvc, unsigned long arg0, unsigned long arg1, unsigned long arg2, unsigned long arg3, unsigned long arg4, unsigned long arg5, unsigned long arg6, unsigned long arg7, struct arm_smccc_res *res)
 {
-    if (conduit == SMCCC_CONDUIT_HVC) arm_smccc_hvc(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, res);
+    if (use_hvc) arm_smccc_hvc(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, res);
     else arm_smccc_smc(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, res);
 }
 
 // 查询一个标准 SMCCC function id 是否受支持；res.a0 是 SMCCC 返回码。
-static void print_smccc_arch_feature(enum arm_smccc_conduit conduit, unsigned long func_id, const char *name)
+static void print_smccc_arch_feature(bool use_hvc, unsigned long func_id, const char *name)
 {
     struct arm_smccc_res res;
 
-    arm_smccc_call_conduit(conduit, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, func_id, 0, 0, 0, 0, 0, 0, &res);
+    arm_smccc_call_conduit(use_hvc, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, func_id, 0, 0, 0, 0, 0, 0, &res);
     ls_log("SMCCC feature %-22s: %ld (0x%lx)\n", name, res.a0, res.a0);
 }
 
@@ -443,7 +447,7 @@ static void print_smccc_probe(unsigned int current_el, unsigned int el2_implemen
     struct arm_smccc_res res;
     // 注释掉或移除相关代码，避免引入未导出符号
     // enum arm_smccc_conduit kernel_conduit;
-    enum arm_smccc_conduit conduit = SMCCC_CONDUIT_HVC;
+    bool use_hvc = true;
 
     ls_log("===== SMCCC Probe =====\n");
 
@@ -463,16 +467,16 @@ static void print_smccc_probe(unsigned int current_el, unsigned int el2_implemen
         return;
     }
 
-    arm_smccc_call_conduit(conduit, ARM_SMCCC_VERSION_FUNC_ID, 0, 0, 0, 0, 0, 0, 0, &res);
+    arm_smccc_call_conduit(use_hvc, ARM_SMCCC_VERSION_FUNC_ID, 0, 0, 0, 0, 0, 0, 0, &res);
     ls_log("SMCCC version      : 0x%lx (major=%lu minor=%lu)\n", res.a0, (res.a0 >> 16) & 0xffff, res.a0 & 0xffff);
 
-    print_smccc_arch_feature(conduit, ARM_SMCCC_VERSION_FUNC_ID, "SMCCC_VERSION");
-    print_smccc_arch_feature(conduit, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, "ARCH_FEATURES");
-    print_smccc_arch_feature(conduit, ARM_SMCCC_ARCH_WORKAROUND_1, "ARCH_WORKAROUND_1");
-    print_smccc_arch_feature(conduit, ARM_SMCCC_ARCH_WORKAROUND_2, "ARCH_WORKAROUND_2");
-    print_smccc_arch_feature(conduit, ARM_SMCCC_ARCH_WORKAROUND_3, "ARCH_WORKAROUND_3");
+    print_smccc_arch_feature(use_hvc, ARM_SMCCC_VERSION_FUNC_ID, "SMCCC_VERSION");
+    print_smccc_arch_feature(use_hvc, ARM_SMCCC_ARCH_FEATURES_FUNC_ID, "ARCH_FEATURES");
+    print_smccc_arch_feature(use_hvc, ARM_SMCCC_ARCH_WORKAROUND_1, "ARCH_WORKAROUND_1");
+    print_smccc_arch_feature(use_hvc, ARM_SMCCC_ARCH_WORKAROUND_2, "ARCH_WORKAROUND_2");
+    print_smccc_arch_feature(use_hvc, ARM_SMCCC_ARCH_WORKAROUND_3, "ARCH_WORKAROUND_3");
 
-    arm_smccc_call_conduit(conduit, ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID, 0, 0, 0, 0, 0, 0, 0, &res);
+    arm_smccc_call_conduit(use_hvc, ARM_SMCCC_VENDOR_HYP_CALL_UID_FUNC_ID, 0, 0, 0, 0, 0, 0, 0, &res);
     ls_log("Vendor hyp UID     : %08lx-%08lx-%08lx-%08lx\n", res.a0, res.a1, res.a2, res.a3);
 }
 

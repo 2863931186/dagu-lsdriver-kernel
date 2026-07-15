@@ -234,7 +234,7 @@ static inline pte_t *get_kernel_pte(uint64_t vaddr)
     if (pud_none(*pud)) return NULL;
 
     // 检查是否是 1G 大页
-    if (pud_leaf(*pud)) return NULL;
+    if (pud_sect(*pud)) return NULL;
 
     if (pud_bad(*pud)) return NULL;
 
@@ -243,7 +243,7 @@ static inline pte_t *get_kernel_pte(uint64_t vaddr)
     if (pmd_none(*pmd)) return NULL;
 
     // 检查是否是 2M 大页
-    if (pmd_leaf(*pmd)) return NULL;
+    if (pmd_sect(*pmd)) return NULL;
 
     if (pmd_bad(*pmd)) return NULL;
 
@@ -279,7 +279,7 @@ static inline pte_t *get_user_pte(struct mm_struct *mm, uint64_t vaddr)
     if (pud_none(*pud)) return NULL;
 
     // 检查是否是 1G 大页
-    if (pud_leaf(*pud)) return NULL;
+    if (pud_sect(*pud)) return NULL;
 
     if (pud_bad(*pud)) return NULL;
 
@@ -288,7 +288,7 @@ static inline pte_t *get_user_pte(struct mm_struct *mm, uint64_t vaddr)
     if (pmd_none(*pmd)) return NULL;
 
     // 检查是否是 2M 大页
-    if (pmd_leaf(*pmd)) return NULL;
+    if (pmd_sect(*pmd)) return NULL;
 
     if (pmd_bad(*pmd)) return NULL;
 
@@ -345,12 +345,14 @@ static inline pte_t *get_or_alloc_user_pte(struct mm_struct *mm, uint64_t vaddr)
 
     pgd = pgd_offset(mm, vaddr);
     if (pgd_bad(*pgd)) return NULL;
+#if CONFIG_PGTABLE_LEVELS > 4
     if (pgd_none(*pgd))
     {
         p4d_t *new_p4d = p4d_alloc_one(mm, vaddr);
         if (!new_p4d) return NULL;
         pgd_populate(mm, pgd, new_p4d);
     }
+#endif
 
     p4d = p4d_offset(pgd, vaddr);
     if (p4d_bad(*p4d)) return NULL;
@@ -362,7 +364,7 @@ static inline pte_t *get_or_alloc_user_pte(struct mm_struct *mm, uint64_t vaddr)
     }
 
     pud = pud_offset(p4d, vaddr);
-    if (pud_leaf(*pud) || pud_bad(*pud)) return NULL;
+    if (pud_sect(*pud) || pud_bad(*pud)) return NULL;
     if (pud_none(*pud))
     {
         pmd_t *new_pmd = pmd_alloc_one(mm, vaddr);
@@ -371,10 +373,14 @@ static inline pte_t *get_or_alloc_user_pte(struct mm_struct *mm, uint64_t vaddr)
     }
 
     pmd = pmd_offset(pud, vaddr);
-    if (pmd_leaf(*pmd) || pmd_bad(*pmd)) return NULL;
+    if (pmd_sect(*pmd) || pmd_bad(*pmd)) return NULL;
     if (pmd_none(*pmd))
     {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 0, 0)
+        pgtable_t new_pte = pte_alloc_one(mm, vaddr);
+#else
         pgtable_t new_pte = pte_alloc_one(mm);
+#endif
         if (!new_pte) return NULL;
         pmd_populate(mm, pmd, new_pte);
     }

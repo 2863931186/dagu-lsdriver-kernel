@@ -162,10 +162,10 @@ static int hw_breakpoint_parse(struct bp_point *point, bool is_compat, struct ar
         case 1:
         case 2:
             if (hw->ctrl.len == ARM_BREAKPOINT_LEN_2) break;
-            fallthrough;
+            /* fall through */
         case 3:
             if (hw->ctrl.len == ARM_BREAKPOINT_LEN_1) break;
-            fallthrough;
+            /* fall through */
         default:
             return -EINVAL;
         }

@@ -434,7 +434,7 @@ static inline int walk_translate_va_to_pa(struct mm_struct *mm, uint64_t vaddr, 
     if (pud_none(*pud)) return -1;
 
     // 检查是否是 1G 大页
-    if (pud_leaf(*pud))
+    if (pud_sect(*pud))
     {
         // 检查pfn
         pfn = pud_pfn(*pud);
@@ -450,7 +450,7 @@ static inline int walk_translate_va_to_pa(struct mm_struct *mm, uint64_t vaddr, 
     if (pmd_none(*pmd)) return -1;
 
     // 检查是否是 2M 大页
-    if (pmd_leaf(*pmd))
+    if (pmd_sect(*pmd))
     {
         // 检查pfn
         pfn = pmd_pfn(*pmd);
