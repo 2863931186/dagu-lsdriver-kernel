@@ -39,8 +39,9 @@ if ! command -v "$cc_compat" >/dev/null || ! command -v "$ld_compat" >/dev/null;
     exit 1
 fi
 
-git -C "$KERNEL_DIR" apply --unidiff-zero \
-    "$ROOT_DIR/patches/dagu/0001-gsi-fix-modversion-generation.patch"
+for kernel_patch in "$ROOT_DIR"/patches/dagu/*.patch; do
+    git -C "$KERNEL_DIR" apply --unidiff-zero "$kernel_patch"
+done
 
 mkdir -p "$OUT_DIR" "$DIST_DIR"
 

@@ -1,0 +1,17 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] HID: wacom: use the HID bus type for USB detection
+
+This 4.19 vendor tree does not provide hid_is_usb(). Check the HID device bus
+directly, which is equivalent for the USB-only setup performed here.
+---
+ drivers/hid/wacom_sys.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/hid/wacom_sys.c b/drivers/hid/wacom_sys.c
+--- a/drivers/hid/wacom_sys.c
++++ b/drivers/hid/wacom_sys.c
+@@ -2708 +2708 @@ static int wacom_probe(struct hid_device *hdev,
+-	if (hid_is_usb(hdev)) {
++	if (hdev->bus == BUS_USB) {
+-- 
+2.50.1
