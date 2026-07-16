@@ -49,17 +49,9 @@ static inline int get_pacga_key(pid_t pid, unsigned long *lo, unsigned long *hi)
     *lo = 0;
     *hi = 0;
 
-    rcu_read_lock();
-
-    src = find_task_by_vpid(pid);
+    src = get_task_by_pid(pid);
     if (!src)
-    {
-        rcu_read_unlock();
         return -ESRCH;
-    }
-
-    get_task_struct(src);
-    rcu_read_unlock();
 
     *lo = src->thread.keys_user.apga.lo;
     *hi = src->thread.keys_user.apga.hi;

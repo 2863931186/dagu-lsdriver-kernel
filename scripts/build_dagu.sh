@@ -71,6 +71,7 @@ if [[ -n "${KERNEL_CONFIG_GZ_BASE64:-}" ]]; then
     "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
         --disable LOCALVERSION_AUTO \
         --set-str LOCALVERSION "$KERNEL_LOCALVERSION"
+    make_args+=(LOCALVERSION=)
 else
     make "${make_args[@]}" dagu_user_defconfig
 

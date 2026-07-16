@@ -254,8 +254,8 @@ static int stepbp_apply_pid_tasks(pid_t target_pid, bool enable)
 
     if (target_pid <= 0) return 0;
 
+    target_task = get_task_by_pid(target_pid);
     rcu_read_lock();
-    target_task = find_task_by_vpid(target_pid);
     if (!target_task)
     {
         for_each_process_thread(process, task)
@@ -285,6 +285,7 @@ static int stepbp_apply_pid_tasks(pid_t target_pid, bool enable)
 
 out_unlock:
     rcu_read_unlock();
+    if (target_task) put_task_struct(target_task);
     stepbp_update_current_cpu(&update);
     smp_call_function(stepbp_update_current_cpu, &update, 1);
     return touched_count;
