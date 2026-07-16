@@ -60,14 +60,26 @@ make_args=(
     LD_COMPAT="$ld_compat"
 )
 
-make "${make_args[@]}" dagu_user_defconfig
+if [[ -n "${KERNEL_CONFIG_GZ_BASE64:-}" ]]; then
+    if [[ -z "${KERNEL_LOCALVERSION:-}" ]]; then
+        echo "KERNEL_LOCALVERSION is required with a supplied kernel config" >&2
+        exit 1
+    fi
 
-"$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
-    --enable MODULES \
-    --enable MODVERSIONS \
-    --enable KALLSYMS \
-    --enable KALLSYMS_ALL \
-    --enable KPROBES
+    printf '%s' "$KERNEL_CONFIG_GZ_BASE64" | base64 --decode | gzip --decompress > "$OUT_DIR/.config"
+    "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+        --disable LOCALVERSION_AUTO \
+        --set-str LOCALVERSION "$KERNEL_LOCALVERSION"
+else
+    make "${make_args[@]}" dagu_user_defconfig
+
+    "$KERNEL_DIR/scripts/config" --file "$OUT_DIR/.config" \
+        --enable MODULES \
+        --enable MODVERSIONS \
+        --enable KALLSYMS \
+        --enable KALLSYMS_ALL \
+        --enable KPROBES
+fi
 
 make "${make_args[@]}" olddefconfig
 make -j"$JOBS" "${make_args[@]}" Image Image.gz dtbs modules

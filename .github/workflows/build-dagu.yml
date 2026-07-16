@@ -2,6 +2,15 @@ name: Build Xiaomi Dagu kernel and lsdriver
 
 on:
   workflow_dispatch:
+    inputs:
+      kernel_config_gz_base64:
+        description: "Base64-encoded /proc/config.gz for a stock-kernel module build"
+        required: false
+        type: string
+      kernel_localversion:
+        description: "Exact CONFIG_LOCALVERSION when using a supplied stock config"
+        required: false
+        type: string
   push:
     branches: [main]
     paths:
@@ -51,6 +60,8 @@ jobs:
           TOOLCHAIN_DIR: ${{ github.workspace }}/proton-clang
           OUT_DIR: ${{ github.workspace }}/out/dagu
           DIST_DIR: ${{ github.workspace }}/dist/dagu
+          KERNEL_CONFIG_GZ_BASE64: ${{ inputs.kernel_config_gz_base64 }}
+          KERNEL_LOCALVERSION: ${{ inputs.kernel_localversion }}
         run: bash scripts/build_dagu.sh
 
       - name: Upload dagu artifacts
