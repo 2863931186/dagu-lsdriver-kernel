@@ -1,0 +1,20 @@
+From: Codex <noreply@openai.com>
+Subject: [PATCH] mm: guard RTMM reclaim hooks with CONFIG_RTMM
+
+The RTMM implementation is only linked when CONFIG_RTMM is enabled. Keep its
+vmscan hooks under the same condition so configurations without RTMM link.
+---
+ mm/vmscan.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/mm/vmscan.c b/mm/vmscan.c
+--- a/mm/vmscan.c
++++ b/mm/vmscan.c
+@@ -2368,3 +2368,5 @@ static void get_scan_count(struct lruvec *lruvec, struct mem_cgroup *memcg,
++#ifdef CONFIG_RTMM
+ 	if (unlikely(rtmm_reclaim(current->comm))) {
+ 		swappiness = rtmm_reclaim_swappiness();
+ 	}
++#endif
+-- 
+2.50.1
